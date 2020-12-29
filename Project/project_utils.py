@@ -1,3 +1,6 @@
+
+########## Functions for U-Net ##########
+
 def get_data(path, start, end, size=(128,128)):
   """ 
   function to load image data of cells and normalize the pictures for dataloader.
@@ -195,4 +198,63 @@ def get_f1_score(y_true, y_pred):
     f1_score = (2 * tp) / ((2 * tp) + fp + fn)
 
     return f1_score     
+
+########## Functions for Mask R-CNN ##########
+
+def view(images,labels,n=2,std=1,mean=0):
+    figure = plt.figure(figsize=(15,10))
+    images=list(images)
+    labels=list(labels)
+    for i in range(n):
+        out=torchvision.utils.make_grid(images[i])
+        inp=out.cpu().numpy().transpose((1,2,0))
+        inp=np.array(std)*inp+np.array(mean)
+        inp=np.clip(inp,0,1)  
+        ax = figure.add_subplot(2,2, i + 1)
+        ax.imshow(images[i].cpu().numpy().transpose((1,2,0)))
+        l=labels[i]['boxes'].cpu().numpy()
+        l[:,2]=l[:,2]-l[:,0]
+        l[:,3]=l[:,3]-l[:,1]
+        for j in range(len(l)):
+            ax.add_patch(patches.Rectangle((l[j][0],l[j][1]),l[j][2],l[j][3],linewidth=1.5,edgecolor='r',facecolor='none')) 
+
+def latest_model():
+  sp = '/content/drive/MyDrive/warwick_qu_dataset_released_2016_07_08/Warwick QU Dataset (Released 2016_07_08)/trained_models'
+  largest = 0
+  model_names = os.listdir(os.path.join(sp))
+  for i in model_names:
+    nr = int(list(filter(str.isdigit, i))[0])
+    if nr>largest:
+      largest = nr
+  return largest
+
+def view_mask2(targets, output, n=2, cmap='Greys'):
+    figure = plt.figure(figsize=(15,10))
+    for i in range(n):
+      # plot target (true) masks
+      target_im = targets[i]['masks'][0].cpu().detach().numpy()
+      for k in range(len(targets[i]['masks'])):
+        target_im2 = targets[i]['masks'][k].cpu().detach().numpy()
+        target_im2[target_im2>0.5] = 1
+        target_im2[target_im2<0.5] = 0
+        target_im = target_im+target_im2
+
+      target_im[target_im>0.5] = 1
+      target_im[target_im<0.5] = 0
+      ax = figure.add_subplot(2,2, i+1)
+      ax.imshow(target_im, cmap=cmap)
+      # Plot output (predicted) masks
+      output_im = output[i]['masks'][0][0, :, :].cpu().detach().numpy()
+      for k in range(len(output[i]['masks'])):
+        output_im2 = output[i]['masks'][k][0, :, :].cpu().detach().numpy()
+        output_im2[output_im2>0.5] = 1
+        output_im2[output_im2<0.5] = 0
+        output_im = output_im+output_im2
+
+      output_im[output_im>0.5] = 1
+      output_im[output_im<0.5] = 0
+      ax = figure.add_subplot(2,2, i+3)
+      ax.imshow(output_im, cmap=cmap)
+
+
 
